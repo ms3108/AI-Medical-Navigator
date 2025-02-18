@@ -1337,4 +1337,5 @@ def view_user_chat(room_code):
 
 
 if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))  # Use Render's PORT or default 5000
     socketio.run(app, debug=True)
