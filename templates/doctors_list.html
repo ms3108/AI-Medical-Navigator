@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Available Doctors{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Available Doctors</h4>
+                </div>
+                <div class="card-body">
+                    {% if doctors %}
+                        {% for doctor in doctors %}
+                        <div class="border p-3 mb-3 rounded">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5>Dr. {{ doctor.name }}</h5>
+                                    <small class="text-muted">{{ doctor.email }}</small>
+                                </div>
+                                <a href="/start-chat/{{ doctor.email }}" class="btn btn-primary">
+                                    Start Chat
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center">No doctors available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

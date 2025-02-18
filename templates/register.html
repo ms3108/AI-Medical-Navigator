@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4>Register</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Role</label>
+                        <select name="role" class="form-select" id="roleSelect" onchange="toggleDoctorFields()" required>
+                            <option value="user">Patient</option>
+                            <option value="doctor">Doctor</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Doctor-specific fields (initially hidden) -->
+                <div id="doctorFields" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Specialization</label>
+                            <input type="text" name="specialization" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Gender</label>
+                            <select name="gender" class="form-select">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Qualifications</label>
+                            <input type="text" name="qualifications" class="form-control"
+                                   placeholder="e.g., MBBS, MD, MS">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Experience (years)</label>
+                            <input type="number" name="experience" class="form-control" min="0">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">About</label>
+                        <textarea name="about" class="form-control" rows="3"
+                                 placeholder="Brief description about your medical practice"></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Register</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleDoctorFields() {
+    const roleSelect = document.getElementById('roleSelect');
+    const doctorFields = document.getElementById('doctorFields');
+    doctorFields.style.display = roleSelect.value === 'doctor' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

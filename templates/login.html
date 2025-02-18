@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Medical Navigator{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="background-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <div class="container">
+        <div class="row justify-content-center align-items-center min-vh-100 py-5">
+            <div class="col-md-10">
+                <div class="login-wrapper">
+                    <div class="row g-0">
+                        <!-- Left Side: Brand Info -->
+                        <div class="col-md-5">
+                            <div class="brand-section text-white p-4 d-flex flex-column justify-content-between">
+                                <div class="brand-header">
+                                    <h1 class="brand-title mb-4">
+                                        <i class="fas fa-hospital-user me-2"></i>
+                                        Medical Navigator
+                                    </h1>
+                                    <p class="brand-subtitle">Your trusted healthcare companion</p>
+                                </div>
+
+                                <div class="features-list">
+                                    <div class="feature-item">
+                                        <i class="fas fa-user-md"></i>
+                                        <span>Expert Doctors</span>
+                                    </div>
+                                    <div class="feature-item">
+                                        <i class="fas fa-comments"></i>
+                                        <span>24/7 Consultations</span>
+                                    </div>
+                                    <div class="feature-item">
+                                        <i class="fas fa-robot"></i>
+                                        <span>AI Health Assistant</span>
+                                    </div>
+                                    <div class="feature-item">
+                                        <i class="fas fa-shield-alt"></i>
+                                        <span>Secure & Private</span>
+                                    </div>
+                                </div>
+
+                                <div class="contact-info">
+                                    <div class="contact-item">
+                                        <i class="fas fa-envelope"></i>
+                                        <a href="mailto:support@medicalnavigator.com">support@medicalnavigator.com</a>
+                                    </div>
+                                    <div class="contact-item">
+                                        <i class="fas fa-phone"></i>
+                                        <a href="tel:+1-555-123-4567">+1 (555) 123-4567</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Side: Login Form -->
+                        <div class="col-md-7">
+                            <div class="login-form-section p-4">
+                                <div class="text-center mb-4">
+                                    <h2 class="welcome-text">Welcome Back</h2>
+                                    <p class="text-muted">Please login to your account</p>
+                                </div>
+
+                                <!-- Flash Messages -->
+                                {% with messages = get_flashed_messages() %}
+                                    {% if messages %}
+                                        {% for message in messages %}
+                                            <div class="alert alert-custom fade show" role="alert">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                {{ message }}
+                                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endwith %}
+
+                                <!-- Login Form -->
+                                <form method="POST" class="needs-validation" novalidate>
+                                    <div class="form-group mb-4">
+                                        <label class="form-label">Email Address</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-envelope"></i>
+                                            </span>
+                                            <input type="email" name="email" class="form-control"
+                                                   required placeholder="Enter your email">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group mb-4">
+                                        <label class="form-label">Password</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-lock"></i>
+                                            </span>
+                                            <input type="password" name="password" class="form-control"
+                                                   required placeholder="Enter your password">
+                                            <button type="button" class="btn btn-outline-secondary" id="togglePassword">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100 mb-3">
+                                        <i class="fas fa-sign-in-alt me-2"></i> Sign In
+                                    </button>
+
+                                    <div class="text-center">
+                                        <p class="mb-0">
+                                            Don't have an account?
+                                            <a href="{{ url_for('register') }}" class="register-link">
+                                                Create Account
+                                            </a>
+                                        </p>
+                                    </div>
+                                </form>
+
+                                <div class="social-links mt-4 text-center">
+                                    <a href="#" class="social-link">
+                                        <i class="fab fa-facebook-f"></i>
+                                    </a>
+                                    <a href="#" class="social-link">
+                                        <i class="fab fa-twitter"></i>
+                                    </a>
+                                    <a href="#" class="social-link">
+                                        <i class="fab fa-linkedin-in"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Modern Login Page Styles */
+.login-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.background-shapes .shape {
+    position: absolute;
+    background: linear-gradient(45deg, #4481eb, #04befe);
+    border-radius: 50%;
+    filter: blur(60px);
+    z-index: 0;
+    opacity: 0.4;
+}
+
+.background-shapes .shape:nth-child(1) {
+    width: 300px;
+    height: 300px;
+    top: -150px;
+    left: -150px;
+}
+
+.background-shapes .shape:nth-child(2) {
+    width: 400px;
+    height: 400px;
+    bottom: -200px;
+    right: -200px;
+    background: linear-gradient(45deg, #0061ff, #60efff);
+}
+
+.login-wrapper {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.brand-section {
+    background: linear-gradient(135deg, #0061ff, #60efff);
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.brand-section::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('path-to-your-pattern.png') center/cover;
+    opacity: 0.1;
+}
+
+.brand-title {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.brand-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.features-list {
+    margin: 2rem 0;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateX(5px);
+}
+
+.feature-item i {
+    margin-right: 1rem;
+    font-size: 1.2rem;
+}
+
+.contact-info {
+    margin-top: auto;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.contact-item i {
+    margin-right: 1rem;
+}
+
+.contact-item a {
+    color: white;
+    text-decoration: none;
+    opacity: 0.9;
+    transition: opacity 0.3s ease;
+}
+
+.contact-item a:hover {
+    opacity: 1;
+}
+
+.login-form-section {
+    padding: 2rem;
+}
+
+.welcome-text {
+    color: #2d3748;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.form-group label {
+    color: #4a5568;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.input-group {
+    border-radius: 10px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.input-group:focus-within {
+    box-shadow: 0 0 0 3px rgba(66,153,225,0.2);
+}
+
+.input-group-text {
+    background: #f7fafc;
+    border: none;
+    color: #4a5568;
+}
+
+.form-control {
+    border: none;
+    padding: 0.75rem 1rem;
+    background: #f7fafc;
+}
+
+.form-control:focus {
+    background: white;
+    box-shadow: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #0061ff, #60efff);
+    border: none;
+    padding: 0.75rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0,97,255,0.2);
+}
+
+.register-link {
+    color: #0061ff;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.register-link:hover {
+    color: #60efff;
+}
+
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.social-link {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f7fafc;
+    border-radius: 50%;
+    color: #4a5568;
+    transition: all 0.3s ease;
+}
+
+.social-link:hover {
+    background: #0061ff;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.alert-custom {
+    background: #f7fafc;
+    border: none;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .brand-section {
+        display: none;
+    }
+
+    .login-wrapper {
+        margin: 1rem;
+    }
+}
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Password toggle functionality
+    document.getElementById('togglePassword').addEventListener('click', function() {
+        const passwordInput = document.querySelector('input[name="password"]');
+        const icon = this.querySelector('i');
+
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    });
+
+    // Form validation
+    (function() {
+        'use strict';
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+</script>
+{% endblock %}

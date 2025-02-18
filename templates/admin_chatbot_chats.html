@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Chatbot Conversations{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Chatbot Conversations</h4>
+            <a href="/admin_dashboard" class="btn btn-outline-light btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+        <div class="card-body" id="chats-container">
+            {% if chats %}
+                {% for chat in chats %}
+                <div class="chat-card mb-4 border rounded p-3" id="chat-{{ chat._id }}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h5 class="mb-1">{{ chat.user_name }}</h5>
+                            <small class="text-muted">
+                                {{ chat.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </small>
+                        </div>
+                        <button onclick="deleteChat('{{ chat._id }}')"
+                                class="btn btn-danger btn-sm delete-btn">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                    <div class="chat-content">
+                        <div class="user-question mb-2">
+                            <strong>Question:</strong>
+                            <p class="mb-1">{{ chat.question }}</p>
+                        </div>
+                        <div class="bot-answer">
+                            <strong>Answer:</strong>
+                            <p class="mb-1">{{ chat.answer }}</p>
+                            <small class="text-muted">
+                                Confidence Score: {{ "%.2f"|format(chat.confidence_score * 100) }}%
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-center text-muted" id="no-chats-message">No chatbot conversations found.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+async function deleteChat(chatId) {
+    if (!confirm('Are you sure you want to delete this conversation?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/admin/delete_chat/${chatId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            // Remove the chat element
+            const chatElement = document.getElementById(`chat-${chatId}`);
+            if (chatElement) {
+                chatElement.remove();
+
+                // Check if there are any remaining chats
+                const remainingChats = document.querySelectorAll('.chat-card');
+                if (remainingChats.length === 0) {
+                    const container = document.getElementById('chats-container');
+                    container.innerHTML = '<p class="text-center text-muted">No chatbot conversations found.</p>';
+                }
+            }
+            // Show success message
+            showAlert('Chat deleted successfully', 'success');
+        } else {
+            // Show error message
+            showAlert(data.error || 'Error deleting chat', 'danger');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('Error deleting chat', 'danger');
+    }
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertDiv.style.zIndex = '1050';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.body.appendChild(alertDiv);
+
+    // Remove the alert after 3 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+</script>
+
+<style>
+.chat-card {
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+}
+
+.chat-card:hover {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.user-question {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.bot-answer {
+    background-color: #e3f2fd;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.delete-btn {
+    transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+    transform: scale(1.05);
+}
+
+.alert {
+    max-width: 300px;
+}
+</style>
+{% endblock %}

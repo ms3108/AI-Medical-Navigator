@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Welcome to Medical Portal!</h2>
+        <p>Hello {{ name }},</p>
+        <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
+
+        <a href="{{ verification_link }}" class="button">Verify Email</a>
+
+        <p>Or copy and paste this link in your browser:</p>
+        <p>{{ verification_link }}</p>
+
+        <p>This link will expire in 1 hour.</p>
+
+        <div class="footer">
+            <p>If you didn't create an account, you can safely ignore this email.</p>
+            <p>Medical Portal Team</p>
+        </div>
+    </div>
+</body>
+</html>

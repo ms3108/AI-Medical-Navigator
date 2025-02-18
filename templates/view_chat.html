@@ -1,0 +1,28 @@
+<!-- templates/view_chat.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h3>Conversation with {{ chat.get('user_name', 'Unknown User') }}</h3>
+            <small class="text-muted">Started: {{ chat.get('created_at', '').strftime('%Y-%m-%d %H:%M') if chat.get('created_at') else 'Unknown time' }}</small>
+        </div>
+        <div class="card-body">
+            <div class="chat-messages">
+                {% for message in chat.get('messages', []) %}
+                <div class="message {% if message.get('sender_email') == session.email %}sent{% else %}received{% endif %}">
+                    <div class="message-content">
+                        <strong>{{ message.get('sender', 'Unknown') }}</strong>
+                        <p>{{ message.get('message', '') }}</p>
+                        <small class="text-muted">
+                            {{ message.get('timestamp', '').strftime('%H:%M') if message.get('timestamp') else 'Unknown time' }}
+                        </small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

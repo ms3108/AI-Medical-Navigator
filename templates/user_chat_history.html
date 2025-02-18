@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>My Chat History</h2>
+        <a href="{{ url_for('user_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    {% if not doctors %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> You haven't had any conversations yet.
+            <a href="{{ url_for('active_doctors') }}" class="alert-link">Find a doctor to chat with</a>.
+        </div>
+    {% else %}
+        <div class="accordion" id="chatAccordion">
+            {% for doctor_email, doctor in doctors.items() %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#doctor{{ loop.index }}">
+                        <div>
+                            <strong>Dr. {{ doctor.name }}</strong>
+                            <span class="badge bg-info ms-2">{{ doctor.specialization }}</span>
+                            <span class="badge bg-primary ms-2">
+                                {{ doctor.chats|length }} conversations
+                            </span>
+                        </div>
+                    </button>
+                </h2>
+                <div id="doctor{{ loop.index }}" class="accordion-collapse collapse">
+                    <div class="accordion-body">
+                        <div class="list-group">
+                            {% for chat in doctor.chats %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-1">
+                                        Conversation on {{ chat.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </h6>
+                                    <span class="badge {% if chat.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ chat.status|title }}
+                                    </span>
+                                </div>
+                                <p class="mb-1">
+                                    <strong>Doctor:</strong> Dr. {{ chat.doctor_name }}
+                                </p>
+                                <p class="mb-1">
+                                    Messages: {{ chat.message_count }}
+                                </p>
+                                <div class="mt-2">
+                                    <a href="{{ url_for('view_user_chat', room_code=chat.room_code) }}"
+                                       class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye"></i> View Conversation
+                                    </a>
+                                    {% if chat.status == 'active' %}
+                                    <a href="{{ url_for('chat', room_code=chat.room_code) }}"
+                                       class="btn btn-success btn-sm">
+                                        <i class="fas fa-comments"></i> Continue Chat
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.accordion-button:not(.collapsed) {
+    background-color: #e7f1ff;
+    color: #0c63e4;
+}
+
+.list-group-item {
+    margin-bottom: 10px;
+    border-radius: 5px !important;
+}
+
+.badge {
+    font-size: 0.8em;
+}
+
+.specialization-badge {
+    background-color: #17a2b8;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,79 @@
+/* static/css/style.css */
+.top-image-container {
+    display: flex;
+    justify-content: center;
+    padding-top: 20px;
+    margin-bottom: 30px;
+}
+
+.top-image {
+    max-width: 150px;
+    height: auto;
+}
+
+.logo-text {
+    margin-top: 10px; /* Space between image and text */
+    color: #333; /* Text color */
+    font-size: 24px; /* Text size */
+    font-weight: bold; /* Make text bold */
+}
+
+/* Optional: Add some style to the text */
+.logo-text {
+    font-family: 'Arial', sans-serif;
+    color: #2c3e50; /* Professional dark blue color */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* Subtle text shadow */
+}
+
+/* Add to your static/css/style.css */
+.chat-messages {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.message {
+    margin: 10px;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.message.sent {
+    background-color: #007bff;
+    color: white;
+    margin-left: 20%;
+}
+
+.message.received {
+    background-color: #f8f9fa;
+    margin-right: 20%;
+}
+
+.message-content {
+    padding: 5px;
+}
+
+.search-form {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 15px;
+}
+
+.input-group-text {
+    background-color: #fff;
+    border-right: none;
+}
+
+.form-control:focus {
+    border-left: none;
+    box-shadow: none;
+}
+
+.search-results {
+    margin-top: 20px;
+}
+
+.highlight {
+    background-color: #fff3cd;
+    padding: 2px;
+    border-radius: 3px;
+}

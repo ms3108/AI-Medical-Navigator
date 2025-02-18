@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Dashboard{% endblock %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="#">Doctor Dashboard</a>
+        <div class="navbar-nav ms-auto">
+            <span class="navbar-text me-3">
+                <span id="statusIndicator" class="badge {% if doctor.is_active %}bg-success{% else %}bg-danger{% endif %} me-2">
+                    {{ 'Active' if doctor.is_active else 'Inactive' }}
+                </span>
+                Dr. {{ doctor.name }}
+            </span>
+            <a href="/logout" class="btn btn-outline-light">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="row">
+        <!-- Doctor Profile Card -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Doctor Profile</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <img src="https://via.placeholder.com/100" class="rounded-circle" alt="Profile Picture">
+                        <h5 class="mt-3">Dr. {{ doctor.name }}</h5>
+                        <p class="text-muted">{{ doctor.email }}</p>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="activeToggle"
+                               {% if doctor.is_active %}checked{% endif %}
+                               onchange="toggleStatus(this)">
+                        <label class="form-check-label" for="activeToggle">
+                            Available for Consultations
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Chats -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Active Consultations</h5>
+                </div>
+                <div class="card-body">
+                    {% if active_chats %}
+                        {% for chat in active_chats %}
+                        <div class="chat-card border rounded p-3 mb-3" id="chat-{{ chat.room_code }}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Patient: {{ chat.patient_name }}</h6>
+                                    <small class="text-muted">Room Code: {{ chat.room_code }}</small>
+                                </div>
+                                <div class="btn-group">
+                                    <a href="/chat/{{ chat.room_code }}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-comments"></i> Join Chat
+                                    </a>
+                                    <button onclick="endChat('{{ chat.room_code }}')" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-times"></i> End Chat
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-muted">No active consultations</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function toggleStatus(checkbox) {
+    try {
+        const response = await fetch('/toggle_doctor_status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                is_active: checkbox.checked
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Update status indicator
+            const statusIndicator = document.getElementById('statusIndicator');
+            if (checkbox.checked) {
+                statusIndicator.className = 'badge bg-success me-2';
+                statusIndicator.textContent = 'Active';
+            } else {
+                statusIndicator.className = 'badge bg-danger me-2';
+                statusIndicator.textContent = 'Inactive';
+            }
+        } else {
+            // Revert checkbox if update failed
+            checkbox.checked = !checkbox.checked;
+            alert('Failed to update status: ' + data.error);
+        }
+    } catch (error) {
+        // Revert checkbox if there's an error
+        checkbox.checked = !checkbox.checked;
+        alert('Error updating status');
+    }
+}
+
+async function endChat(roomCode) {
+    if (confirm('Are you sure you want to end this chat?')) {
+        try {
+            const response = await fetch(`/end_chat/${roomCode}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Remove the chat card from UI
+                document.getElementById(`chat-${roomCode}`).remove();
+
+                // Check if there are any remaining chats
+                const remainingChats = document.querySelectorAll('.chat-card');
+                if (remainingChats.length === 0) {
+                    document.querySelector('.card-body').innerHTML =
+                        '<p class="text-center text-muted">No active consultations</p>';
+                }
+            } else {
+                alert('Failed to end chat: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error ending chat');
+        }
+    }
+}
+</script>
+
+
+    <a href="{{ url_for('doctor_chat_history') }}" class="btn btn-primary">
+    <i class="fas fa-history"></i> View Chat History
+</a>
+{% endblock %}

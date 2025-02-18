@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3>Chat Details</h3>
+                <a href="{{ url_for('admin_chat_history') }}" class="btn btn-secondary">
+                    Back to Chat History
+                </a>
+            </div>
+            <div class="mt-2">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">Doctor Information</h5>
+                                <p class="card-text">
+                                    <strong>Name:</strong> {{ chat.doctor_name }}<br>
+                                    <strong>Email:</strong> {{ chat.doctor_email }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">Patient Information</h5>
+                                <p class="card-text">
+                                    <strong>Name:</strong> {{ chat.user_name }}<br>
+                                    <strong>Email:</strong> {{ chat.user_email }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <h5 class="card-title">Chat Information</h5>
+                        <p class="card-text">
+                            <strong>Started:</strong> {{ chat.created_at.strftime('%Y-%m-%d %H:%M') if chat.created_at else 'Unknown' }}<br>
+                            <strong>Status:</strong>
+                            <span class="badge {% if chat.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ chat.status|title }}
+                            </span><br>
+                            <strong>Room Code:</strong> {{ chat.room_code }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <h5 class="mb-3">Conversation History</h5>
+            <div class="chat-messages">
+                {% if chat.messages %}
+                    {% for message in chat.messages %}
+                    <div class="message {% if message.sender_email == chat.doctor_email %}doctor{% else %}patient{% endif %}">
+                        <div class="message-content">
+                            <div class="message-header">
+                                <strong>{{ message.sender }}</strong>
+                                <small class="text-muted">
+                                    {{ message.formatted_time }}
+                                </small>
+                            </div>
+                            <div class="message-body">
+                                {{ message.message }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No messages in this conversation.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.message {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.message.doctor {
+    background-color: #e3f2fd;
+    margin-right: 20%;
+}
+
+.message.patient {
+    background-color: #f5f5f5;
+    margin-left: 20%;
+}
+
+.message-header {
+    margin-bottom: 5px;
+}
+
+.message-body {
+    white-space: pre-wrap;
+}
+
+.chat-messages {
+    max-height: 500px;
+    overflow-y: auto;
+}
+</style>
+{% endblock %}

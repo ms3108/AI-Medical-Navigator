@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}View User - {{ user.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">User Details</h4>
+            <a href="/admin_dashboard" class="btn btn-outline-light btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Basic Information</h5>
+                    <table class="table">
+                        <tr>
+                            <th>Name:</th>
+                            <td>{{ user.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Email:</th>
+                            <td>{{ user.email }}</td>
+                        </tr>
+                        <tr>
+                            <th>Role:</th>
+                            <td>
+                                <span class="badge bg-primary">{{ user.role }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                <span class="badge bg-{{ user.status == 'approved' ? 'success' : 'warning' }}">
+                                    {{ user.status }}
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                {% if user.role == 'doctor' %}
+                <div class="col-md-6">
+                    <h5>Doctor Details</h5>
+                    <table class="table">
+                        <tr>
+                            <th>Specialization:</th>
+                            <td>{{ user.specialization }}</td>
+                        </tr>
+                        <tr>
+                            <th>Experience:</th>
+                            <td>{{ user.experience }} years</td>
+                        </tr>
+                        <tr>
+                            <th>Qualifications:</th>
+                            <td>{{ user.qualifications }}</td>
+                        </tr>
+                        <tr>
+                            <th>Active Status:</th>
+                            <td>
+                                <span class="badge bg-{{ user.is_active ? 'success' : 'danger' }}">
+                                    {{ user.is_active ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Chat History -->
+            <div class="mt-4">
+                <h5>Chat History</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>{{ user.role == 'doctor' ? 'Patient' : 'Doctor' }}</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for chat in chats %}
+                            <tr>
+                                <td>{{ chat.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if user.role == 'doctor' %}
+                                        {{ chat.user_name }}
+                                    {% else %}
+                                        Dr. {{ chat.doctor_name }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ chat.status == 'active' ? 'success' : 'secondary' }}">
+                                        {{ chat.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button onclick="viewChat('{{ chat.room_code }}')"
+                                            class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewChat(roomCode) {
+    // Implement chat viewing functionality
+    alert('Chat viewing functionality to be implemented');
+}
+</script>
+{% endblock %}
