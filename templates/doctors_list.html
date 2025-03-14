@@ -3,34 +3,244 @@
 {% block title %}Available Doctors{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-8 mx-auto">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Available Doctors</h4>
-                </div>
-                <div class="card-body">
-                    {% if doctors %}
-                        {% for doctor in doctors %}
-                        <div class="border p-3 mb-3 rounded">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h5>Dr. {{ doctor.name }}</h5>
-                                    <small class="text-muted">{{ doctor.email }}</small>
-                                </div>
-                                <a href="/start-chat/{{ doctor.email }}" class="btn btn-primary">
-                                    Start Chat
-                                </a>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-center">No doctors available</p>
-                    {% endif %}
-                </div>
+<div class="doctors-page">
+    <!-- Side Navigation -->
+    <div class="side-nav">
+        <div class="nav-header">
+            <i class="fas fa-hospital-user"></i>
+            <h3>Medical Navigator</h3>
+        </div>
+        <div class="filter-section">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search doctors...">
             </div>
         </div>
     </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="content-header">
+            <h2>Available Doctors</h2>
+            <div class="view-toggle">
+                <i class="fas fa-th-large active"></i>
+                <i class="fas fa-list"></i>
+            </div>
+        </div>
+
+        {% if doctors %}
+        <div class="doctors-grid">
+            {% for doctor in doctors %}
+            <div class="doctor-tile">
+                <div class="status-bar">
+                    <span class="status-dot"></span>
+                    Available
+                </div>
+
+                <div class="doctor-info">
+                    <div class="doctor-initial">
+                        {{ doctor.name[0] }}
+                    </div>
+                    <h4>Dr. {{ doctor.name }}</h4>
+                    <p class="email">{{ doctor.email }}</p>
+                </div>
+
+                <a href="/start-chat/{{ doctor.email }}" class="chat-btn">
+                    Chat Now
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-doctors">
+            <i class="fas fa-user-md"></i>
+            <p>No doctors available at the moment</p>
+        </div>
+        {% endif %}
+    </div>
 </div>
+
+<style>
+.doctors-page {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+    background: #f8fafc;
+}
+
+.side-nav {
+    background: white;
+    padding: 2rem;
+    border-right: 1px solid #e2e8f0;
+    position: fixed;
+    width: 280px;
+    height: 100vh;
+}
+
+.nav-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    color: #0d6efd;
+}
+
+.nav-header i {
+    font-size: 1.5rem;
+}
+
+.search-box {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    outline: none;
+}
+
+.search-box i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+}
+
+.main-content {
+    padding: 2rem;
+    margin-left: 280px;
+}
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.view-toggle {
+    display: flex;
+    gap: 1rem;
+    color: #94a3b8;
+}
+
+.view-toggle i {
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+.view-toggle i.active {
+    color: #0d6efd;
+}
+
+.doctors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.doctor-tile {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    position: relative;
+    transition: transform 0.3s ease;
+}
+
+.doctor-tile:hover {
+    transform: translateY(-5px);
+}
+
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #10b981;
+    margin-bottom: 1rem;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.doctor-info {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.doctor-initial {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #0d6efd, #60a5fa);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0 auto 1rem;
+}
+
+.doctor-info h4 {
+    margin-bottom: 0.5rem;
+    color: #1e293b;
+}
+
+.email {
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+.chat-btn {
+    display: block;
+    background: linear-gradient(135deg, #0d6efd, #60a5fa);
+    color: white;
+    text-align: center;
+    padding: 0.75rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.chat-btn:hover {
+    background: linear-gradient(135deg, #0b5ed7, #5698e8);
+    color: white;
+}
+
+.no-doctors {
+    text-align: center;
+    padding: 4rem;
+    color: #64748b;
+}
+
+.no-doctors i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #94a3b8;
+}
+
+@media (max-width: 768px) {
+    .doctors-page {
+        grid-template-columns: 1fr;
+    }
+
+    .side-nav {
+        display: none;
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+}
+</style>
 {% endblock %}

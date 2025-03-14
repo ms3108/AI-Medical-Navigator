@@ -1,28 +1,240 @@
-<!-- templates/view_chat.html -->
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card">
-        <div class="card-header">
-            <h3>Conversation with {{ chat.get('user_name', 'Unknown User') }}</h3>
-            <small class="text-muted">Started: {{ chat.get('created_at', '').strftime('%Y-%m-%d %H:%M') if chat.get('created_at') else 'Unknown time' }}</small>
+<div class="chat-container">
+    <div class="chat-wrapper">
+        <!-- Chat Header -->
+        <div class="chat-header">
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-details">
+                    <h3>{{ chat.get('user_name', 'Unknown User') }}</h3>
+                    <span class="status">
+                        <i class="fas fa-circle"></i> Online
+                    </span>
+                </div>
+            </div>
+            <div class="chat-actions">
+                <span class="chat-time">
+                    <i class="far fa-clock"></i>
+                    Started: {{ chat.get('created_at', '').strftime('%Y-%m-%d %H:%M') if chat.get('created_at') else 'Unknown time' }}
+                </span>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="chat-messages">
-                {% for message in chat.get('messages', []) %}
-                <div class="message {% if message.get('sender_email') == session.email %}sent{% else %}received{% endif %}">
-                    <div class="message-content">
-                        <strong>{{ message.get('sender', 'Unknown') }}</strong>
-                        <p>{{ message.get('message', '') }}</p>
-                        <small class="text-muted">
+
+        <!-- Chat Messages -->
+        <div class="chat-messages">
+            {% for message in chat.get('messages', []) %}
+            <div class="message-wrapper {% if message.get('sender_email') == session.email %}sent{% else %}received{% endif %}">
+                <div class="message-bubble">
+                    <div class="message-info">
+                        <span class="sender-name">{{ message.get('sender', 'Unknown') }}</span>
+                        <span class="message-time">
                             {{ message.get('timestamp', '').strftime('%H:%M') if message.get('timestamp') else 'Unknown time' }}
-                        </small>
+                        </span>
+                    </div>
+                    <div class="message-text">
+                        {{ message.get('message', '') }}
                     </div>
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
     </div>
 </div>
+
+<style>
+.chat-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.chat-wrapper {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Chat Header Styles */
+.chat-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0099ff 100%);
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-avatar {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.user-details h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.status {
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status i {
+    color: #22c55e;
+    font-size: 0.8rem;
+}
+
+.chat-time {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* Messages Area */
+.chat-messages {
+    padding: 2rem;
+    max-height: 600px;
+    overflow-y: auto;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.message-wrapper {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.message-wrapper.sent {
+    align-items: flex-end;
+}
+
+.message-wrapper.received {
+    align-items: flex-start;
+}
+
+.message-bubble {
+    max-width: 70%;
+    padding: 1rem;
+    border-radius: 15px;
+    position: relative;
+}
+
+.sent .message-bubble {
+    background: linear-gradient(135deg, #0d6efd 0%, #0099ff 100%);
+    color: white;
+    border-bottom-right-radius: 5px;
+}
+
+.received .message-bubble {
+    background: white;
+    color: #2d3748;
+    border-bottom-left-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.message-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.sent .message-info {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.received .message-info {
+    color: #6c757d;
+}
+
+.message-text {
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.message-time {
+    font-size: 0.8rem;
+    margin-left: 1rem;
+}
+
+/* Scrollbar Styling */
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-wrapper {
+    animation: slideIn 0.3s ease-out forwards;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .chat-container {
+        margin: 1rem auto;
+    }
+
+    .message-bubble {
+        max-width: 85%;
+    }
+
+    .chat-header {
+        padding: 1rem;
+    }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+
+    .user-details h3 {
+        font-size: 1.1rem;
+    }
+}
+</style>
 {% endblock %}

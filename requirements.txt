@@ -1,14 +1,1 @@
-requests
-flask
-gunicorn
-Werkzeug
-bcrypt
-torch
-pymongo
-python-dotenv
-Flask-SocketIO
-itsdangerous
-transformers
-flask-mail
-
 

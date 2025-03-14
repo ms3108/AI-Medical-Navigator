@@ -1,85 +1,163 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-            <h4>Register</h4>
+<div class="container mt-5">
+    <div class="card shadow-lg border-0 rounded-lg">
+        <div class="card-header bg-gradient-primary text-white py-3">
+            <h4 class="mb-0 text-center">Create Your Account</h4>
         </div>
-        <div class="card-body">
-            <form method="POST">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" required>
-                    </div>
+        <div class="card-body p-4">
+            <form method="POST" class="needs-validation" novalidate>
+                <!-- Personal Information Section -->
+                <div class="section-title mb-4">
+                    <h5 class="text-muted">Personal Information</h5>
+                    <hr class="mt-2">
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Role</label>
-                        <select name="role" class="form-select" id="roleSelect" onchange="toggleDoctorFields()" required>
-                            <option value="user">Patient</option>
-                            <option value="doctor">Doctor</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Doctor-specific fields (initially hidden) -->
-                <div id="doctorFields" style="display: none;">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Specialization</label>
-                            <input type="text" name="specialization" class="form-control">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <input type="text" name="name" class="form-control" id="nameInput" placeholder="Enter name" required>
+                            <label for="nameInput">Full Name</label>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Gender</label>
-                            <select name="gender" class="form-select">
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <input type="email" name="email" class="form-control" id="emailInput" placeholder="Enter email" required>
+                            <label for="emailInput">Email Address</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <input type="password" name="password" class="form-control" id="passwordInput" placeholder="Enter password" required>
+                            <label for="passwordInput">Password</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <select name="role" class="form-select" id="roleSelect" onchange="toggleDoctorFields()" required>
+                                <option value="user">Patient</option>
+                                <option value="doctor">Doctor</option>
                             </select>
+                            <label for="roleSelect">Select Role</label>
                         </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Qualifications</label>
-                            <input type="text" name="qualifications" class="form-control"
-                                   placeholder="e.g., MBBS, MD, MS">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Experience (years)</label>
-                            <input type="number" name="experience" class="form-control" min="0">
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">About</label>
-                        <textarea name="about" class="form-control" rows="3"
-                                 placeholder="Brief description about your medical practice"></textarea>
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary">Register</button>
+                <!-- Doctor-specific fields -->
+                <div id="doctorFields" style="display: none;">
+                    <div class="section-title mt-4 mb-4">
+                        <h5 class="text-muted">Professional Information</h5>
+                        <hr class="mt-2">
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" name="specialization" class="form-control" id="specializationInput" placeholder="Enter specialization">
+                                <label for="specializationInput">Specialization</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <select name="gender" class="form-select" id="genderSelect">
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <label for="genderSelect">Gender</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" name="qualifications" class="form-control" id="qualificationsInput" placeholder="Enter qualifications">
+                                <label for="qualificationsInput">Qualifications</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="number" name="experience" class="form-control" id="experienceInput" min="0" placeholder="Years of experience">
+                                <label for="experienceInput">Experience (years)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <textarea name="about" class="form-control" id="aboutInput" style="height: 100px" placeholder="Enter description"></textarea>
+                        <label for="aboutInput">About Your Practice</label>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">Create Account</button>
+                </div>
             </form>
         </div>
     </div>
 </div>
 
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #4e73df 0%, #224abe 100%);
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+.btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #224abe;
+    border-color: #224abe;
+    transform: translateY(-1px);
+}
+
+.section-title {
+    color: #4e73df;
+}
+</style>
+
 <script>
 function toggleDoctorFields() {
     const roleSelect = document.getElementById('roleSelect');
     const doctorFields = document.getElementById('doctorFields');
-    doctorFields.style.display = roleSelect.value === 'doctor' ? 'block' : 'none';
+    if (roleSelect.value === 'doctor') {
+        doctorFields.style.display = 'block';
+        doctorFields.classList.add('animate__animated', 'animate__fadeIn');
+    } else {
+        doctorFields.style.display = 'none';
+    }
 }
+
+// Form validation
+(function () {
+    'use strict'
+    const forms = document.querySelectorAll('.needs-validation')
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
 </script>
 {% endblock %}

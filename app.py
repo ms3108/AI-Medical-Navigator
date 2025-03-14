@@ -113,7 +113,10 @@ def reset_chat_indexes():
 # Call this function after database connection
 reset_chat_indexes()
 
-
+import random
+import re
+import torch
+from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 
 
 class DocumentQA:
@@ -121,166 +124,449 @@ class DocumentQA:
         self.model_name = "deepset/deberta-v3-large-squad2"
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.model = AutoModelForQuestionAnswering.from_pretrained(self.model_name)
-        self.qa_pipeline = pipeline('question-answering',
-                                    model=self.model,
-                                    tokenizer=self.tokenizer)
+
+        # Explicitly move model to device before creating pipeline
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f"Device set to use {self.device}")
         self.model.to(self.device)
 
-    def format_friendly_response(self, answer, condition=None):
-        """Make the response more friendly and informative"""
-        friendly_prefixes = [
-            "Based on the information available, ",
-            "I'd be happy to help! ",
-            "From what I understand, ",
-            "Let me help you with that. "
+        # Create pipeline with explicit device
+        self.qa_pipeline = pipeline('question-answering',
+                                    model=self.model,
+                                    tokenizer=self.tokenizer,
+                                    device=0 if torch.cuda.is_available() else -1)
+
+        # Define the medical context directly in the code
+        self.MEDICAL_CONTEXT = """
+Let me help you understand some common medical conditions and their treatments:
+
+Arnica Montana (Pain, Bruise)
+
+Indication: Used for muscle pain, bruising, and injury.
+Dosage:
+Adults: 30C or 200C potency, 2-3 pellets every 2-3 hours for pain.
+Children: 30C potency, 2 pellets 2-3 times a day.
+Antimonium Tartaricum (Cough)
+
+Indication: Useful for chest congestion and productive cough.
+Dosage:
+Adults: 30C, 3 pellets every 2 hours for intense coughing.
+Children: 6C potency, 2 pellets every 3 hours.
+Berberis Vulgaris (Urinary Infection)
+
+Indication: Helps with urinary tract infections, especially if there's pain while urinating.
+Dosage:
+Adults: 30C, 2 pellets every 3-4 hours until improvement.
+Children: 6C potency, 2 pellets every 3 hours.
+Bryonia Alba (Fever, Cough)
+
+Indication: Used for dry, painful coughs and associated fever.
+Dosage:
+Adults: 30C potency, 3-4 pellets every 3-4 hours for fever and cough.
+Children: 6C potency, 2 pellets every 3-4 hours.
+Conium Maculatum (Dizziness)
+
+Indication: Helps with dizziness, especially from neck problems.
+Dosage:
+Adults: 30C potency, 2-3 pellets 3 times a day.
+Children: 6C potency, 2 pellets 2-3 times daily.
+Causticum (Pain)
+
+Indication: Helps with chronic pains like joint or nerve pain.
+Dosage:
+Adults: 30C or 200C potency, 2 pellets 2-3 times a day.
+Children: 6C potency, 2 pellets daily.
+Cinchona Officinalis (Gas Trouble)
+
+Indication: Useful for indigestion and gas-related discomfort.
+Dosage:
+Adults: 30C potency, 3 pellets 2-3 times a day.
+Children: 6C potency, 2 pellets every 3-4 hours.
+Cina (Round Worm)
+
+Indication: Helps with symptoms of intestinal worms like irritability, itching, and abdominal pain.
+Dosage:
+Adults: 30C potency, 2-3 pellets 3 times a day.
+Children: 6C potency, 2 pellets twice a day.
+Colocynthis (Stomach Ache)
+
+Indication: Used for colicky abdominal pain, cramps, or spasms.
+Dosage:
+Adults: 30C potency, 3 pellets every 2-3 hours for pain relief.
+Children: 6C potency, 2 pellets every 3 hours.
+Cantharis (Urinary Infection)
+
+Indication: Best for burning sensations during urination.
+Dosage:
+Adults: 30C potency, 2-3 pellets every 2 hours until relief.
+Children: 6C potency, 2 pellets every 4-5 hours.
+Carbo Vegetabilis (Gas Trouble)
+Indication: Used for bloating, indigestion, and flatulence.
+Dosage:
+Adults: 30C potency, 3 pellets 2-3 times a day.
+Children: 6C potency, 2 pellets twice daily.
+Gelsemium Sempervirens (Fever)
+Indication: Ideal for fevers with weakness and fatigue.
+Dosage:
+Adults: 30C potency, 3 pellets every 3 hours during fever.
+Children: 6C potency, 2 pellets every 4 hours.
+Dioscorea Villosa (Stomach Ache)
+Indication: Helps with cramping, especially around the abdomen.
+Dosage:
+Adults: 30C potency, 3 pellets 2-3 times a day.
+Children: 6C potency, 2 pellets 2-3 times a day.
+Hydrocotyle Asiatica (Itching)
+Indication: Used for rashes and itching caused by skin irritation.
+Dosage:
+Adults: 30C potency, 3 pellets every 2 hours until relief.
+Children: 6C potency, 2 pellets 2-3 times a day.
+Ipecacuanta (Asthma)
+Indication: Helps with asthma, especially when there is excessive mucus production.
+Dosage:
+Adults: 30C potency, 3 pellets every 2-3 hours.
+Children: 6C potency, 2 pellets every 3 hours.
+Ledum Palustre (Pain, Wound)
+Indication: Used for pain, especially after injuries or puncture wounds.
+Dosage:
+Adults: 30C potency, 3 pellets 2-3 times a day.
+Children: 6C potency, 2 pellets 2-3 times a day.
+Kalmia Latifolia (Pain)
+Indication: Helps with acute pain in the joints and muscles.
+Dosage:
+Adults: 30C potency, 3 pellets every 4 hours.
+Children: 6C potency, 2 pellets 2-3 times a day.
+Thuja Occidentalis (Warts)
+Indication: Used for wart removal, especially those that are recurring.
+Dosage:
+Adults: 30C potency, 3 pellets every 2 days.
+Children: 6C potency, 2 pellets every 2-3 days.
+Spigelia Anthelmintica (Headache)
+Indication: Helpful for sharp, throbbing headaches, often on the left side.
+Dosage:
+Adults: 30C potency, 3 pellets every 3-4 hours.
+Children: 6C potency, 2 pellets every 3 hours.
+Sanguinaria Canadensis (Headache)
+Indication: Used for headaches with nausea, often in the right side of the head.
+Dosage:
+Adults: 30C potency, 3 pellets 2-3 times a day.
+Children: 6C potency, 2 pellets 2 times a day.
+Sepia (Itching)
+Indication: Helps with itching, especially around the genitals or groin.
+Dosage:
+Adults: 30C potency, 3 pellets every 3 hours.
+Children: 6C potency, 2 pellets every 4 hours.
+Ruta Graveolens (Pain)
+Indication: Relieves pain from overuse of muscles, especially in the knees and wrists.
+Dosage:
+Adults: 30C potency, 3 pellets 3-4 times a day.
+Children: 6C potency, 2 pellets 2-3 times a day.
+Rules Crispus (Cough, Cold)
+Indication: Useful for symptoms of the common cold, including cough and congestion.
+Dosage:
+Adults: 30C potency, 3 pellets every 3 hours.
+Children: 6C potency, 2 pellets 2-3 times a day.
+Podophyllum Peltatum (Diarrhea)
+Indication: Helps with diarrhea, particularly when there's a sense of urgency.
+Dosage:
+Adults: 30C potency, 3 pellets every 2 hours until symptoms improve.
+Children: 6C potency, 2 pellets 2 times a day.
+Rauwolfia Serpentina Q (Blood Pressure)
+Indication: Supports normal blood pressure levels.
+Dosage:
+Adults: 10-15 drops in water 2-3 times a day.
+Children: 5-8 drops in water twice a day.
+Syzygium Jambolanum Q (Diabetes)
+Indication: Helps manage blood sugar levels.
+Dosage:
+Adults: 10-15 drops in water twice a day.
+Children: 5-8 drops twice a day.
+"""
+
+        # Define common medical conditions with their homeopathic remedies
+        self.condition_remedies = {
+            'pain': ['Arnica Montana', 'Causticum', 'Kalmia Latifolia', 'Ruta Graveolens', 'Ledum Palustre'],
+            'bruise': ['Arnica Montana'],
+            'cough': ['Antimonium Tartaricum', 'Bryonia Alba', 'Rules Crispus'],
+            'cold': ['Rules Crispus'],
+            'urinary infection': ['Berberis Vulgaris', 'Cantharis'],
+            'fever': ['Bryonia Alba', 'Gelsemium Sempervirens'],
+            'dizziness': ['Conium Maculatum'],
+            'gas trouble': ['Cinchona Officinalis', 'Carbo Vegetabilis'],
+            'round worm': ['Cina'],
+            'stomach ache': ['Colocynthis', 'Dioscorea Villosa'],
+            'itching': ['Hydrocotyle Asiatica', 'Sepia'],
+            'asthma': ['Ipecacuanta'],
+            'wound': ['Ledum Palustre'],
+            'warts': ['Thuja Occidentalis'],
+            'headache': ['Spigelia Anthelmintica', 'Sanguinaria Canadensis'],
+            'diarrhea': ['Podophyllum Peltatum'],
+            'blood pressure': ['Rauwolfia Serpentina Q'],
+            'diabetes': ['Syzygium Jambolanum Q']
+        }
+
+        # Create a list of all conditions for regex matching
+        self.common_conditions = list(self.condition_remedies.keys()) + [
+            'flu', 'allergies', 'anxiety', 'depression',
+            'nausea', 'fatigue', 'sore throat', 'congestion', 'runny nose',
+            'chest pain', 'shortness of breath', 'back pain', 'joint pain',
+            'rash', 'insomnia', 'vomiting'
         ]
 
-        friendly_suffixes = [
-            " I recommend consulting with a healthcare provider for personalized advice.",
-            " Please remember to consult your doctor for specific medical guidance.",
-            " Our medical staff is available to discuss this matter with you in greater detail.",
-            " You may always consult a medical professional for further diagnosis and treatment.",
-            " Please feel free to consult with our medical team regarding this matter."
+        # Prepare a regex pattern to match these conditions as whole words
+        pattern = r'\b(?:' + '|'.join(re.escape(cond) for cond in self.common_conditions) + r')\b'
+        self.conditions_pattern = re.compile(pattern, re.IGNORECASE)
+
+        # Define common symptom combinations that might indicate specific conditions
+        self.symptom_combinations = {
+            ('fever', 'cough', 'fatigue'): 'flu',
+            ('headache', 'fever'): 'possible infection',
+            ('nausea', 'vomiting', 'diarrhea'): 'stomach bug',
+            ('congestion', 'runny nose', 'sore throat'): 'common cold',
+            ('cough', 'shortness of breath', 'chest pain'): 'respiratory illness',
+            ('headache', 'nausea', 'dizziness'): 'migraine',
+        }
+
+        # Add friendly message templates
+        self.greeting_templates = [
+            "Hi there! I'm here to help with your health concerns.",
+            "Hello! I understand you're not feeling well. Let me try to help.",
+            "I'd be happy to provide some information about your symptoms.",
+            "Thank you for sharing how you're feeling. Let's see what might help.",
+            "I appreciate you reaching out about your health. Here's what might help."
         ]
 
-        # Choose a random prefix and suffix
-        prefix = random.choice(friendly_prefixes)
-        suffix = random.choice(friendly_suffixes)
+        self.empathy_templates = [
+            "I'm sorry to hear you're experiencing {}. That must be uncomfortable.",
+            "It sounds like {} is bothering you. That's never pleasant.",
+            "Dealing with {} can be difficult. I hope I can offer some helpful information.",
+            "I understand {} can be quite troublesome. Let me share some information that might help.",
+            "{} can really impact your day. Here's what might provide some relief."
+        ]
 
-        # Format the answer
-        formatted_answer = answer.strip()
-        if not formatted_answer.endswith('.'):
-            formatted_answer += '.'
+        self.conclusion_templates = [
+            "Remember, this is just general information. A healthcare provider can give you personalized advice for your specific situation.",
+            "While these remedies might help, it's always best to consult with a healthcare professional for proper diagnosis and treatment.",
+            "I hope this information helps! For a complete evaluation, please consider speaking with a healthcare provider.",
+            "These suggestions are meant to complement, not replace, professional medical advice. Your health is important!",
+            "Every person's health needs are unique, so consider this information as a starting point for a conversation with your healthcare provider."
+        ]
 
-        # Add friendly tone
-        formatted_answer = prefix + formatted_answer.lower()
+        self.transition_phrases = [
+            "For your symptoms, ",
+            "Based on what you've shared, ",
+            "To address these issues, ",
+            "To help with your condition, ",
+            "Some options to consider include "
+        ]
 
-        # Add condition-specific advice if available
-        if condition and condition.lower() in formatted_answer.lower():
-            formatted_answer += f" Since you're asking about {condition}, it's especially important to get proper medical guidance."
-
-        # Add general medical disclaimer
-        formatted_answer += suffix
-
-        return formatted_answer
-
-    def get_answer(self, question, context, max_length=512):
+    def safe_qa_pipeline(self, question, context):
+        """
+        Safely run QA pipeline with error handling and logging
+        """
         try:
-            if len(self.tokenizer.encode(context)) > max_length:
-                return self.handle_long_context(question, context, max_length)
+            # Ensure inputs are strings
+            question = str(question)
+            context = str(context)
 
+            # Run pipeline
             result = self.qa_pipeline({
                 'question': question,
                 'context': context
             })
 
-            if result['score'] < 0.1:
+            # Ensure result is a dictionary
+            if isinstance(result, list):
+                result = result[0] if result else {}
+
+            return result
+        except Exception as e:
+            print(f"Error in QA pipeline: {e}")
+            return {'answer': '', 'score': 0.0}
+
+    def get_remedy_info(self, condition):
+        """Get homeopathic remedy information for a specific condition"""
+        condition = condition.lower()
+
+        # Check if we have remedies for this condition
+        for key in self.condition_remedies:
+            if key in condition or condition in key:
+                remedies = self.condition_remedies[key]
+                if remedies:
+                    # Select a random remedy to recommend
+                    selected_remedy = random.choice(remedies)
+                    return f"{selected_remedy} is often used for {key}."
+
+        return None
+
+    def format_friendly_response(self, responses, conditions=None, potential_diagnosis=None):
+        """Make the response more friendly, empathetic and informative"""
+        # Start with a greeting
+        greeting = random.choice(self.greeting_templates)
+        formatted_answer = f"{greeting}\n\n"
+
+        # Add empathy if conditions are detected
+        if conditions and len(conditions) > 0:
+            condition_list = ", ".join(conditions)
+            empathy = random.choice(self.empathy_templates).format(condition_list)
+            formatted_answer += f"{empathy}\n\n"
+
+        # Add info about potential diagnosis if available
+        if potential_diagnosis and 'combined_response' in responses:
+            formatted_answer += f"Your symptoms of {', '.join(conditions)} may suggest {potential_diagnosis}. "
+            formatted_answer += f"{responses['combined_response']}\n\n"
+
+        # Add transition phrase
+        formatted_answer += random.choice(self.transition_phrases)
+
+        # Add homeopathic remedy suggestions
+        remedy_suggestions = []
+        for condition in conditions:
+            remedy_info = self.get_remedy_info(condition)
+            if remedy_info:
+                remedy_suggestions.append(remedy_info)
+
+        if remedy_suggestions:
+            formatted_answer += "\n\n• " + "\n• ".join(remedy_suggestions)
+
+        # Add individual symptom responses if no remedies found
+        if not remedy_suggestions:
+            symptom_responses = []
+            for condition in conditions:
+                if condition in responses:
+                    symptom_responses.append(responses[condition])
+
+            if symptom_responses:
+                formatted_answer += " " + " ".join(symptom_responses)
+
+        # Add concluding statement
+        formatted_answer += f"\n\n{random.choice(self.conclusion_templates)}"
+
+        return formatted_answer
+
+    def extract_conditions(self, text):
+        """Extracts conditions from the user's question using RegEx to match whole words."""
+        matches = self.conditions_pattern.findall(text)
+        extracted = [match.lower().strip() for match in matches]
+        return extracted
+
+    def check_symptom_combinations(self, conditions):
+        """Check if the conditions match any known symptom combinations"""
+        conditions_set = set(conditions)
+        for combo, diagnosis in self.symptom_combinations.items():
+            combo_set = set(combo)
+            # Check if all symptoms in the combination are present
+            if combo_set.issubset(conditions_set):
+                return combo, diagnosis
+        return None, None
+
+    def get_answer(self, question, max_length=512):
+        try:
+            # Use our built-in medical context
+            context = self.MEDICAL_CONTEXT
+
+            # Truncate context if too long
+            if len(self.tokenizer.encode(context)) > max_length:
+                context = self.tokenizer.decode(
+                    self.tokenizer.encode(context)[:max_length],
+                    skip_special_tokens=True
+                )
+
+            # Extract potential medical conditions from question
+            conditions = self.extract_conditions(question)
+
+            # If no conditions detected, look for common symptom words
+            if not conditions:
+                symptom_words = ["hurts", "pain", "ache", "sore", "uncomfortable", "sick", "not feeling well"]
+                for word in symptom_words:
+                    if word in question.lower():
+                        # Ask a clarifying question
+                        return {
+                            'answer': f"I notice you mentioned you're not feeling well. Could you share more specific symptoms you're experiencing? For example, do you have a headache, fever, cough, or other specific concerns?",
+                            'score': 0.5,
+                            'is_clarification': True
+                        }
+
+            # Check if these conditions match any known combinations
+            symptom_combo, potential_diagnosis = self.check_symptom_combinations(conditions)
+
+            # Dictionary to store responses for each condition and the combined condition
+            responses = {}
+            max_score = 0.0
+
+            # If we have a potential diagnosis based on symptom combination, query for that
+            if potential_diagnosis:
+                combined_result = self.safe_qa_pipeline(
+                    f"What is the remedy for {potential_diagnosis}?",
+                    context
+                )
+
+                if combined_result and combined_result.get('score', 0) >= 0.1:
+                    responses['combined_response'] = combined_result.get('answer', '')
+                    max_score = max(max_score, combined_result.get('score', 0))
+
+            # Also generate individual responses for each symptom
+            for condition in conditions:
+                result = self.safe_qa_pipeline(
+                    f"What is the remedy for {condition}?",
+                    context
+                )
+
+                if result and result.get('score', 0) >= 0.1:
+                    responses[condition] = f"For {condition}, {result.get('answer', '')}"
+                    max_score = max(max_score, result.get('score', 0))
+
+            if not responses and conditions:
+                # We have conditions but no good responses from the model
+                # Just use our built-in remedy information
+                friendly_answer = self.format_friendly_response({}, conditions, potential_diagnosis)
                 return {
-                    'answer': "I apologize, but I'm not entirely confident about the answer to this question. To ensure your safety and well-being, I'd strongly recommend consulting with a healthcare professional who can provide you with accurate, personalized advice.",
-                    'score': result['score'],
-                    'start': None,
-                    'end': None
+                    'answer': friendly_answer,
+                    'score': 0.5,
+                    'conditions_detected': conditions,
+                    'potential_diagnosis': potential_diagnosis if potential_diagnosis else None
                 }
 
-            # Extract potential medical condition from question
-            condition = None
-            common_conditions = ['cold', 'flu', 'headache', 'allergies', 'anxiety', 'depression']
-            for cond in common_conditions:
-                if cond in question.lower():
-                    condition = cond
-                    break
+            elif not responses:
+                # No conditions detected and no good responses
+                return {
+                    'answer': "I'd love to help, but I need a bit more information about what you're experiencing. Could you please share any specific symptoms or health concerns you have? For example, are you experiencing pain, fever, cough, or something else?",
+                    'score': 0.0,
+                    'is_clarification': True
+                }
 
-            friendly_answer = self.format_friendly_response(result['answer'], condition)
+            # Combine responses into a single friendly answer
+            friendly_answer = self.format_friendly_response(responses, conditions, potential_diagnosis)
 
             return {
                 'answer': friendly_answer,
-                'score': result['score'],
-                'start': result['start'],
-                'end': result['end']
+                'score': max_score,
+                'conditions_detected': conditions,
+                'potential_diagnosis': potential_diagnosis if potential_diagnosis else None
             }
 
         except Exception as e:
+            print(f"Unexpected error: {e}")
+            import traceback
+            traceback.print_exc()
             return {
-                'error': "I apologize, but I encountered an issue while processing your question. Please try rephrasing it, or better yet, consult with a healthcare provider for accurate information.",
+                'error': f"I apologize, but I encountered an issue while processing your question. Could you try rephrasing it? I'm here to help with any health concerns you might have.",
                 'answer': None,
                 'score': None
             }
 
-    def handle_long_context(self, question, context, max_length):
-        tokens = self.tokenizer.encode(context)
-        chunks = []
-        chunk_size = max_length - 50
-        overlap = 100
 
-        for i in range(0, len(tokens), chunk_size - overlap):
-            chunk = tokens[i:i + chunk_size]
-            chunks.append(self.tokenizer.decode(chunk, skip_special_tokens=True))
+# Example usage
 
-        answers = []
-        for chunk in chunks:
-            result = self.qa_pipeline({
-                'question': question,
-                'context': chunk
-            })
-            answers.append(result)
+    # Test with some example questions
+    test_questions = [
+        "I have a headache and fever. What should I do?",
+        "I'm suffering from cough, fever, and fatigue. Any recommendations?",
+        "My stomach hurts badly. Can you help?",
+        "I have an itchy rash on my arm.",
+        "I've been feeling dizzy lately."
+    ]
 
-        best_answer = max(answers, key=lambda x: x['score'])
-
-        # Format the best answer in a friendly tone
-        condition = None
-        common_conditions = ['cold', 'flu', 'headache', 'allergies', 'anxiety', 'depression']
-        for cond in common_conditions:
-            if cond in question.lower():
-                condition = cond
-                break
-
-        best_answer['answer'] = self.format_friendly_response(best_answer['answer'], condition)
-        return best_answer
-
-# Initialize QA system
 qa_system = DocumentQA()
-
-# Medical context
-MEDICAL_CONTEXT = """
-Let me help you understand some common medical conditions and their treatments:
-
-If you're experiencing a Common Cold, you might find relief with Pseudoephedrine. This can help with typical cold symptoms like a stuffy nose and congestion.
-
-For Influenza (the flu), your doctor might recommend Oseltamivir. It's important to rest and stay hydrated too!
-
-If you're dealing with Headaches, Ibuprofen can often help ease the pain. Remember to stay in a quiet, dark room if it's a migraine.
-
-For those struggling with Allergies, Loratadine can help manage those uncomfortable symptoms like sneezing and itchy eyes.
-
-If you have Hypertension (high blood pressure), Lisinopril might be prescribed. Regular blood pressure monitoring is important too.
-
-For Type 2 Diabetes patients, Metformin is often recommended, along with healthy eating habits and regular exercise.
-
-If you have Asthma, Albuterol inhalers can provide quick relief when breathing becomes difficult.
-
-For Bacterial Infections, Amoxicillin might be prescribed by your healthcare provider.
-
-Those experiencing Depression symptoms might be prescribed Fluoxetine, usually alongside supportive counseling.
-
-If you're dealing with Anxiety, Diazepam might be recommended, though there are many helpful non-medication approaches too.
-
-For High Cholesterol, Atorvastatin can help, especially when combined with a heart-healthy diet.
-
-If you're experiencing GERD (acid reflux), Omeprazole can help reduce those uncomfortable symptoms.
-
-For Osteoarthritis pain, Naproxen might provide relief. Gentle exercise can also be beneficial.
-
-Those suffering from Migraine headaches might find relief with Sumatriptan.
-
-If you're having trouble sleeping (Insomnia), Zolpidem might be prescribed for short-term use.
-
-Important reminder: While I'm happy to provide general information, it's always best to consult with a healthcare provider for personalized medical advice. If you're experiencing severe symptoms, please seek medical attention right away!
-"""
-
-
-
 
 
 # Login required decorator
@@ -737,7 +1023,7 @@ def ask_question():
         if not question:
             return jsonify({'error': 'No question provided'}), 400
 
-        result = qa_system.get_answer(question, MEDICAL_CONTEXT)
+        result = qa_system.get_answer(question)
 
         chat_data = {
             'user_email': session['email'],
@@ -1338,4 +1624,4 @@ def view_user_chat(room_code):
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Use Render's PORT or default 5000
-    socketio.run(app, debug=True)
+    socketio.run(app, RW_DEBUG=True)

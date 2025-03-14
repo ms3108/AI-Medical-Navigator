@@ -1,58 +1,52 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>My Chat History</h2>
-        <a href="{{ url_for('user_dashboard') }}" class="btn btn-secondary">
+        <h2 class="text-primary fw-bold">My Chat History</h2>
+        <a href="{{ url_for('user_dashboard') }}" class="btn btn-outline-primary shadow-sm">
             <i class="fas fa-arrow-left"></i> Back to Dashboard
         </a>
     </div>
 
     {% if not doctors %}
-        <div class="alert alert-info">
+        <div class="alert alert-warning text-center shadow-sm">
             <i class="fas fa-info-circle"></i> You haven't had any conversations yet.
             <a href="{{ url_for('active_doctors') }}" class="alert-link">Find a doctor to chat with</a>.
         </div>
     {% else %}
-        <div class="accordion" id="chatAccordion">
+        <div class="accordion shadow-sm" id="chatAccordion">
             {% for doctor_email, doctor in doctors.items() %}
-            <div class="accordion-item">
+            <div class="accordion-item border-0">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button"
+                    <button class="accordion-button collapsed bg-light" type="button"
                             data-bs-toggle="collapse"
                             data-bs-target="#doctor{{ loop.index }}">
                         <div>
-                            <strong>Dr. {{ doctor.name }}</strong>
+                            <strong class="text-dark">Dr. {{ doctor.name }}</strong>
                             <span class="badge bg-info ms-2">{{ doctor.specialization }}</span>
-                            <span class="badge bg-primary ms-2">
-                                {{ doctor.chats|length }} conversations
-                            </span>
+                            <span class="badge bg-primary ms-2">{{ doctor.chats|length }} conversations</span>
                         </div>
                     </button>
                 </h2>
                 <div id="doctor{{ loop.index }}" class="accordion-collapse collapse">
-                    <div class="accordion-body">
+                    <div class="accordion-body bg-white rounded">
                         <div class="list-group">
                             {% for chat in doctor.chats %}
-                            <div class="list-group-item">
+                            <div class="list-group-item list-group-item-action shadow-sm p-3 rounded">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-1">
-                                        Conversation on {{ chat.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    <h6 class="mb-1 text-secondary">
+                                        <i class="far fa-calendar-alt"></i> {{ chat.created_at.strftime('%Y-%m-%d %H:%M') }}
                                     </h6>
                                     <span class="badge {% if chat.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
                                         {{ chat.status|title }}
                                     </span>
                                 </div>
-                                <p class="mb-1">
-                                    <strong>Doctor:</strong> Dr. {{ chat.doctor_name }}
-                                </p>
-                                <p class="mb-1">
-                                    Messages: {{ chat.message_count }}
-                                </p>
+                                <p class="mb-1"><strong>Doctor:</strong> Dr. {{ chat.doctor_name }}</p>
+                                <p class="mb-1"><i class="fas fa-comment-alt"></i> Messages: {{ chat.message_count }}</p>
                                 <div class="mt-2">
                                     <a href="{{ url_for('view_user_chat', room_code=chat.room_code) }}"
-                                       class="btn btn-primary btn-sm">
+                                       class="btn btn-outline-primary btn-sm">
                                         <i class="fas fa-eye"></i> View Conversation
                                     </a>
                                     {% if chat.status == 'active' %}
@@ -75,21 +69,23 @@
 
 <style>
 .accordion-button:not(.collapsed) {
-    background-color: #e7f1ff;
-    color: #0c63e4;
+    background-color: #e3f2fd;
+    color: #0d6efd;
 }
 
 .list-group-item {
-    margin-bottom: 10px;
-    border-radius: 5px !important;
+    border: none;
+    transition: all 0.3s ease-in-out;
+}
+.list-group-item:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.02);
 }
 
 .badge {
-    font-size: 0.8em;
-}
-
-.specialization-badge {
-    background-color: #17a2b8;
+    font-size: 0.85em;
+    padding: 5px 10px;
+    border-radius: 10px;
 }
 </style>
 {% endblock %}

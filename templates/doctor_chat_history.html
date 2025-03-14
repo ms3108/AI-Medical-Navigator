@@ -1,16 +1,18 @@
 {% extends "base.html" %}
 
+{% block title %}Chat History{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>My Patient Chat History</h2>
-        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        <h2 class="page-title">My Patient Chat History</h2>
+        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-back">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
         </a>
     </div>
 
     <!-- Search Form -->
-    <div class="card mb-4">
+    <div class="search-card mb-4">
         <div class="card-body">
             <form method="GET" class="row g-3 align-items-center">
                 <div class="col-auto flex-grow-1">
@@ -18,7 +20,7 @@
                         <span class="input-group-text">
                             <i class="fas fa-search"></i>
                         </span>
-                        <input type="text" name="search" class="form-control"
+                        <input type="text" name="search" class="form-control search-input"
                                placeholder="Search patient by name or email..."
                                value="{{ search_query }}">
                     </div>
@@ -26,7 +28,7 @@
                 <div class="col-auto">
                     <button type="submit" class="btn btn-primary">Search</button>
                     {% if search_query %}
-                        <a href="{{ url_for('doctor_chat_history') }}" class="btn btn-secondary">
+                        <a href="{{ url_for('doctor_chat_history') }}" class="btn btn-outline-secondary ms-2">
                             Clear Search
                         </a>
                     {% endif %}
@@ -37,6 +39,7 @@
 
     {% if not patients %}
         <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
             {% if search_query %}
                 No conversations found for "{{ search_query }}"
             {% else %}
@@ -44,17 +47,19 @@
             {% endif %}
         </div>
     {% else %}
-        <div class="accordion" id="patientAccordion">
+        <div class="accordion custom-accordion" id="patientAccordion">
             {% for patient_email, patient in patients.items() %}
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button"
                             data-bs-toggle="collapse"
                             data-bs-target="#patient{{ loop.index }}">
-                        <div>
-                            <strong>{{ patient.name }}</strong>
-                            <small class="text-muted ms-2">({{ patient.email }})</small>
-                            <span class="badge bg-primary ms-2">
+                        <div class="d-flex align-items-center w-100">
+                            <div>
+                                <strong>{{ patient.name }}</strong>
+                                <small class="text-muted ms-2">{{ patient.email }}</small>
+                            </div>
+                            <span class="badge bg-primary ms-auto">
                                 {{ patient.chats|length }} conversations
                             </span>
                         </div>
@@ -62,29 +67,37 @@
                 </h2>
                 <div id="patient{{ loop.index }}" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        <div class="list-group">
+                        <div class="chat-list">
                             {% for chat in patient.chats %}
-                            <div class="list-group-item">
+                            <div class="chat-item">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-1">
-                                        Conversation on {{ chat.created_at.strftime('%Y-%m-%d %H:%M') }}
-                                    </h6>
-                                    <span class="badge {% if chat.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
-                                        {{ chat.status|title }}
-                                    </span>
-                                </div>
-                                <p class="mb-1">Messages: {{ chat.message_count }}</p>
-                                <div class="mt-2">
-                                    <a href="{{ url_for('view_doctor_chat', room_code=chat.room_code) }}"
-                                       class="btn btn-primary btn-sm">
-                                        <i class="fas fa-eye"></i> View Chat
-                                    </a>
-                                    {% if chat.status == 'active' %}
-                                    <a href="{{ url_for('chat', room_code=chat.room_code) }}"
-                                       class="btn btn-success btn-sm">
-                                        <i class="fas fa-comments"></i> Continue Chat
-                                    </a>
-                                    {% endif %}
+                                    <div class="chat-info">
+                                        <h6 class="mb-1">
+                                            <i class="far fa-calendar-alt me-2"></i>
+                                            {{ chat.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                        </h6>
+                                        <p class="mb-0 text-muted">
+                                            <i class="far fa-comments me-2"></i>
+                                            {{ chat.message_count }} messages
+                                        </p>
+                                    </div>
+                                    <div class="chat-status">
+                                        <span class="status-badge {% if chat.status == 'active' %}status-active{% else %}status-inactive{% endif %}">
+                                            {{ chat.status|title }}
+                                        </span>
+                                    </div>
+                                    <div class="chat-actions">
+                                        <a href="{{ url_for('view_doctor_chat', room_code=chat.room_code) }}"
+                                           class="btn btn-view">
+                                            <i class="fas fa-eye me-1"></i>View
+                                        </a>
+                                        {% if chat.status == 'active' %}
+                                        <a href="{{ url_for('chat', room_code=chat.room_code) }}"
+                                           class="btn btn-continue">
+                                            <i class="fas fa-comments me-1"></i>Continue
+                                        </a>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                             {% endfor %}
@@ -98,48 +111,127 @@
 </div>
 
 <style>
+:root {
+    --primary: #2563eb;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --gray: #64748b;
+    --light: #f1f5f9;
+    --border: #e2e8f0;
+}
+
+.page-title {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.btn-back {
+    background: var(--light);
+    color: var(--gray);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-back:hover {
+    background: #e2e8f0;
+    transform: translateX(-2px);
+}
+
+.search-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid var(--border);
+}
+
+.search-input {
+    border: 1px solid var(--border);
+    padding: 0.625rem;
+}
+
+.custom-accordion .accordion-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.accordion-button {
+    padding: 1rem 1.25rem;
+    background: white;
+}
+
 .accordion-button:not(.collapsed) {
-    background-color: #e7f1ff;
-    color: #0c63e4;
+    background: var(--light);
+    color: var(--primary);
 }
 
-.list-group-item {
-    margin-bottom: 10px;
-    border-radius: 5px !important;
+.chat-item {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: white;
+    transition: all 0.3s ease;
 }
 
-.badge {
-    font-size: 0.8em;
+.chat-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.card-header {
-    background-color: #f8f9fa;
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
 }
 
-.search-form {
-    background-color: #f8f9fa;
-    border-radius: 5px;
-    padding: 15px;
+.status-active {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
 }
 
-.input-group-text {
-    background-color: #fff;
-    border-right: none;
+.status-inactive {
+    background: rgba(100, 116, 139, 0.1);
+    color: var(--gray);
 }
 
-.form-control:focus {
-    border-left: none;
-    box-shadow: none;
+.btn-view, .btn-continue {
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    margin-left: 0.5rem;
+    border: none;
+    transition: all 0.3s ease;
 }
 
-.search-results {
-    margin-top: 20px;
+.btn-view {
+    background: var(--primary);
+    color: white;
 }
 
-.highlight {
-    background-color: #fff3cd;
-    padding: 2px;
-    border-radius: 3px;
+.btn-continue {
+    background: var(--success);
+    color: white;
+}
+
+.btn-view:hover, .btn-continue:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    color: white;
+}
+
+.chat-info h6 {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.alert {
+    border-radius: 8px;
+    border: none;
 }
 </style>
 {% endblock %}
