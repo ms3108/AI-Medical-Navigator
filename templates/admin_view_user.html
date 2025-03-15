@@ -33,7 +33,7 @@
                         <tr>
                             <th>Status:</th>
                             <td>
-                                <span class="badge bg-{{ user.status == 'approved' ? 'success' : 'warning' }}">
+                                <span class="badge bg-{{ 'success' if user.status == 'approved' else 'warning' }}">
                                     {{ user.status }}
                                 </span>
                             </td>
@@ -60,8 +60,8 @@
                         <tr>
                             <th>Active Status:</th>
                             <td>
-                                <span class="badge bg-{{ user.is_active ? 'success' : 'danger' }}">
-                                    {{ user.is_active ? 'Active' : 'Inactive' }}
+                                <span class="badge bg-{{ 'success' if user.is_active else 'danger' }}">
+                                    {{ 'Active' if user.is_active else 'Inactive' }}
                                 </span>
                             </td>
                         </tr>
@@ -95,7 +95,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ chat.status == 'active' ? 'success' : 'secondary' }}">
+                                    <span class="badge bg-{{ 'success' if chat.status == 'active' else 'secondary' }}">
                                         {{ chat.status }}
                                     </span>
                                 </td>

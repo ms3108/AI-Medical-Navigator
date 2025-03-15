@@ -11,45 +11,121 @@
                 <i class="fas fa-arrow-left"></i> Back to Dashboard
             </a>
         </div>
-        <div class="card-body" id="chats-container">
+        <div class="card-body">
             {% if chats %}
-                {% for chat in chats %}
-                <div class="chat-card mb-4 border rounded p-3" id="chat-{{ chat._id }}">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <h5 class="mb-1">{{ chat.user_name }}</h5>
-                            <small class="text-muted">
-                                {{ chat.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
-                            </small>
-                        </div>
-                        <button onclick="deleteChat('{{ chat._id }}')"
-                                class="btn btn-danger btn-sm delete-btn">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                    </div>
-                    <div class="chat-content">
-                        <div class="user-question mb-2">
-                            <strong>Question:</strong>
-                            <p class="mb-1">{{ chat.question }}</p>
-                        </div>
-                        <div class="bot-answer">
-                            <strong>Answer:</strong>
-                            <p class="mb-1">{{ chat.answer }}</p>
-                            <small class="text-muted">
-                                Confidence Score: {{ "%.2f"|format(chat.confidence_score * 100) }}%
-                            </small>
-                        </div>
-                    </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>User</th>
+                                <th>Question</th>
+                                <th>Answer</th>
+                                <th>Confidence</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="chats-container">
+                            {% for chat in chats %}
+                            <tr class="chat-row" id="chat-{{ chat._id }}">
+                                <td>{{ chat.user_name }}</td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 200px;" data-bs-toggle="tooltip" title="{{ chat.question }}">
+                                        {{ chat.question }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 300px;" data-bs-toggle="tooltip" title="{{ chat.answer }}">
+                                        {{ chat.answer }}
+                                    </div>
+                                <td>
+    <div class="progress">
+        {% set confidence = chat.confidence_score or 0 %}
+        <div class="progress-bar bg-{{ 'success' if confidence > 0.7 else 'warning' if confidence > 0.4 else 'danger' }}"
+             role="progressbar"
+             style="width: {{ (confidence * 100)|round }}%;"
+             aria-valuenow="{{ (confidence * 100)|round }}"
+             aria-valuemin="0"
+             aria-valuemax="100">
+            {{ "%.0f"|format(confidence * 100) }}%
+        </div>
+    </div>
+</td>
+                                <td>{{ chat.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <button class="btn btn-info btn-sm view-details" data-chat-id="{{ chat._id }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button onclick="deleteChat('{{ chat._id }}')" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <!-- Expandable Details Row -->
+                            <tr class="chat-details d-none" id="details-{{ chat._id }}">
+                                <td colspan="6">
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <h5>User Question:</h5>
+                                                    <div class="p-3 bg-light rounded">{{ chat.question }}</div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h5>Bot Answer:</h5>
+                                                    <div class="p-3 bg-light rounded">{{ chat.answer }}</div>
+                                                </div>
+                                            </div>
+                                            {% if chat.metadata is defined %}
+                                            <div class="mt-3">
+                                                <h5>Additional Metadata:</h5>
+                                                <pre class="bg-light p-2 rounded">{{ chat.metadata|tojson(indent=2) }}</pre>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                {% endfor %}
             {% else %}
-                <p class="text-center text-muted" id="no-chats-message">No chatbot conversations found.</p>
+                <div class="alert alert-info text-center" id="no-chats-message">
+                    <i class="fas fa-info-circle me-2"></i> No chatbot conversations found.
+                </div>
             {% endif %}
         </div>
     </div>
 </div>
 
 <script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Add event listeners for the view details buttons
+    document.querySelectorAll('.view-details').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const chatId = this.getAttribute('data-chat-id');
+            const detailsRow = document.getElementById('details-' + chatId);
+
+            // Toggle the details row
+            if (detailsRow.classList.contains('d-none')) {
+                document.querySelectorAll('.chat-details').forEach(function(row) {
+                    row.classList.add('d-none');
+                });
+                detailsRow.classList.remove('d-none');
+            } else {
+                detailsRow.classList.add('d-none');
+            }
+        });
+    });
+});
+
 async function deleteChat(chatId) {
     if (!confirm('Are you sure you want to delete this conversation?')) {
         return;
@@ -67,18 +143,21 @@ async function deleteChat(chatId) {
         const data = await response.json();
 
         if (response.ok && data.success) {
-            // Remove the chat element
-            const chatElement = document.getElementById(`chat-${chatId}`);
-            if (chatElement) {
-                chatElement.remove();
-
-                // Check if there are any remaining chats
-                const remainingChats = document.querySelectorAll('.chat-card');
-                if (remainingChats.length === 0) {
-                    const container = document.getElementById('chats-container');
-                    container.innerHTML = '<p class="text-center text-muted">No chatbot conversations found.</p>';
-                }
+            // Remove both the row and its details row
+            document.getElementById(`chat-${chatId}`).remove();
+            const detailsRow = document.getElementById(`details-${chatId}`);
+            if (detailsRow) {
+                detailsRow.remove();
             }
+
+            // Check if there are any remaining chats
+            const remainingChats = document.querySelectorAll('.chat-row');
+            if (remainingChats.length === 0) {
+                const container = document.getElementById('chats-container').parentNode.parentNode;
+                container.innerHTML = '<div class="alert alert-info text-center" id="no-chats-message">' +
+                    '<i class="fas fa-info-circle me-2"></i> No chatbot conversations found.</div>';
+            }
+
             // Show success message
             showAlert('Chat deleted successfully', 'success');
         } else {
@@ -109,38 +188,37 @@ function showAlert(message, type) {
 </script>
 
 <style>
-.chat-card {
-    transition: all 0.3s ease;
-    background-color: #ffffff;
-}
-
-.chat-card:hover {
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.user-question {
-    background-color: #f8f9fa;
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 10px;
-}
-
-.bot-answer {
-    background-color: #e3f2fd;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.delete-btn {
+.chat-row {
+    cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.delete-btn:hover {
-    transform: scale(1.05);
+.chat-row:hover {
+    background-color: rgba(0,0,0,0.05);
 }
 
-.alert {
-    max-width: 300px;
+.progress {
+    height: 20px;
+}
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.view-details, .btn-danger {
+    transition: all 0.2s ease;
+}
+
+.view-details:hover, .btn-danger:hover {
+    transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
 }
 </style>
 {% endblock %}

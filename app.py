@@ -535,7 +535,7 @@ Children: 5-8 drops twice a day.
                 }
 
             # Combine responses into a single friendly answer
-            friendly_answer = self.format_friendly_response(responses, conditions, potential_diagnosis)
+            friendly_answer = self.format_friendly_response(responses, conditions)
 
             return {
                 'answer': friendly_answer,
@@ -1203,39 +1203,65 @@ def delete_user(email):
 
     return redirect('/admin_dashboard')
 
+
+# Flask route for viewing chatbot conversations
 @app.route('/admin/chatbot_chats')
 @login_required
 def view_chatbot_chats():
-    if session['role'] != 'admin':
+    if session.get('role') != 'admin':
+        flash('Access denied. Admin privileges required.', 'danger')
         return redirect('/')
 
     try:
+        # Get all chats
         chats = list(chatbot_chats_collection.find().sort('timestamp', -1))
+        print(f"Retrieved {len(chats)} chatbot conversations")
+
+        # Process each chat to handle potential None values
         for chat in chats:
+            # Convert ObjectId to string
             chat['_id'] = str(chat['_id'])
+
+            # Ensure all fields exist and have appropriate values
+            if 'question' not in chat:
+                chat['question'] = 'No question recorded'
+            if 'answer' not in chat:
+                chat['answer'] = 'No answer recorded'
+
+            # This is the key fix - handle None confidence scores
+            if 'confidence_score' not in chat or chat['confidence_score'] is None:
+                chat['confidence_score'] = 0.0
+
+            if 'user_name' not in chat:
+                chat['user_name'] = 'Anonymous User'
+            if 'timestamp' not in chat:
+                chat['timestamp'] = datetime.now()
 
         return render_template('admin_chatbot_chats.html', chats=chats)
     except Exception as e:
-        flash(f'Error loading chatbot conversations: {str(e)}')
+        print(f"Error in view_chatbot_chats: {str(e)}")
+        flash(f'Error loading chatbot conversations: {str(e)}', 'danger')
         return redirect('/admin_dashboard')
 
 @app.route('/admin/delete_chat/<chat_id>', methods=['POST'])
 @login_required
-def delete_chat(chat_id):
-    if session['role'] != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 401
+def delete_chatbot_chat(chat_id):
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
 
     try:
-        object_id = ObjectId(chat_id)
-        result = chatbot_chats_collection.delete_one({'_id': object_id})
+        # Convert string id to ObjectId
+        from bson.objectid import ObjectId
+        result = chatbot_chats_collection.delete_one({'_id': ObjectId(chat_id)})
 
         if result.deleted_count > 0:
-            return jsonify({'success': True, 'message': 'Chat deleted successfully'})
+            return jsonify({'success': True})
         else:
-            return jsonify({'error': 'Chat not found'}), 404
+            return jsonify({'success': False, 'error': 'Chat not found'}), 404
 
     except Exception as e:
-        return jsonify({'error': f'Error deleting chat: {str(e)}'}), 500
+        print(f"Error deleting chat {chat_id}: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # Socket.IO setup and events
 socketio = SocketIO(app)
