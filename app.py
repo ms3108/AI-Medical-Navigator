@@ -93,7 +93,6 @@ except Exception as e:
     print(f"Error connecting to MongoDB: {e}")
 
 
-# Add this function after your database connection
 def reset_chat_indexes():
     try:
         # Drop existing indexes
@@ -112,7 +111,6 @@ def reset_chat_indexes():
 
 # Call this function after database connection
 reset_chat_indexes()
-
 import random
 import re
 import torch
@@ -135,6 +133,9 @@ class DocumentQA:
                                     model=self.model,
                                     tokenizer=self.tokenizer,
                                     device=0 if torch.cuda.is_available() else -1)
+
+        # Add conversation state to store symptoms between interactions
+        self.conversation_state = {}
 
         # Define the medical context directly in the code
         self.MEDICAL_CONTEXT = """
@@ -359,6 +360,15 @@ Children: 5-8 drops twice a day.
             "Some options to consider include "
         ]
 
+        # Add age clarification templates with symptom reference
+        self.age_clarification_templates = [
+            "I see you're experiencing {}. To provide the most appropriate dosage information, could you let me know if this is for an adult or a child?",
+            "Thank you for sharing about your {}. For accurate dosage recommendations, I need to know: is this for an adult or a child?",
+            "I understand you're dealing with {}. Different dosages are recommended for adults and children. Could you please specify who needs the remedy?",
+            "For the {} you mentioned, the dosage varies between adults and children. May I know who this information is for?",
+            "Regarding the {} you're experiencing, to suggest the right dosage, could you tell me if you're asking about treatment for an adult or a child?"
+        ]
+
     def safe_qa_pipeline(self, question, context):
         """
         Safely run QA pipeline with error handling and logging
@@ -383,8 +393,8 @@ Children: 5-8 drops twice a day.
             print(f"Error in QA pipeline: {e}")
             return {'answer': '', 'score': 0.0}
 
-    def get_remedy_info(self, condition):
-        """Get homeopathic remedy information for a specific condition"""
+    def get_remedy_info(self, condition, is_child=False):
+        """Get homeopathic remedy information for a specific condition with dosage"""
         condition = condition.lower()
 
         # Check if we have remedies for this condition
@@ -394,60 +404,63 @@ Children: 5-8 drops twice a day.
                 if remedies:
                     # Select a random remedy to recommend
                     selected_remedy = random.choice(remedies)
-                    return f"{selected_remedy} is often used for {key}."
+
+                    # Now extract dosage information from the medical context
+                    age_group = "Children" if is_child else "Adults"
+                    remedy_pattern = rf"{re.escape(selected_remedy)}.*?{age_group}:(.*?)(?:\n\w|\Z)"
+                    dosage_match = re.search(remedy_pattern, self.MEDICAL_CONTEXT, re.DOTALL)
+
+                    dosage_info = ""
+                    if dosage_match:
+                        dosage_info = f" Recommended dosage for {age_group.lower()}: {dosage_match.group(1).strip()}"
+
+                    return f"{selected_remedy} is often used for {key}.{dosage_info}"
 
         return None
-
-    def format_friendly_response(self, responses, conditions=None, potential_diagnosis=None):
-        """Make the response more friendly, empathetic and informative"""
-        # Start with a greeting
-        greeting = random.choice(self.greeting_templates)
-        formatted_answer = f"{greeting}\n\n"
-
-        # Add empathy if conditions are detected
-        if conditions and len(conditions) > 0:
-            condition_list = ", ".join(conditions)
-            empathy = random.choice(self.empathy_templates).format(condition_list)
-            formatted_answer += f"{empathy}\n\n"
-
-        # Add info about potential diagnosis if available
-        if potential_diagnosis and 'combined_response' in responses:
-            formatted_answer += f"Your symptoms of {', '.join(conditions)} may suggest {potential_diagnosis}. "
-            formatted_answer += f"{responses['combined_response']}\n\n"
-
-        # Add transition phrase
-        formatted_answer += random.choice(self.transition_phrases)
-
-        # Add homeopathic remedy suggestions
-        remedy_suggestions = []
-        for condition in conditions:
-            remedy_info = self.get_remedy_info(condition)
-            if remedy_info:
-                remedy_suggestions.append(remedy_info)
-
-        if remedy_suggestions:
-            formatted_answer += "\n\n• " + "\n• ".join(remedy_suggestions)
-
-        # Add individual symptom responses if no remedies found
-        if not remedy_suggestions:
-            symptom_responses = []
-            for condition in conditions:
-                if condition in responses:
-                    symptom_responses.append(responses[condition])
-
-            if symptom_responses:
-                formatted_answer += " " + " ".join(symptom_responses)
-
-        # Add concluding statement
-        formatted_answer += f"\n\n{random.choice(self.conclusion_templates)}"
-
-        return formatted_answer
 
     def extract_conditions(self, text):
         """Extracts conditions from the user's question using RegEx to match whole words."""
         matches = self.conditions_pattern.findall(text)
         extracted = [match.lower().strip() for match in matches]
         return extracted
+
+    def check_for_age_info(self, question, user_id="default"):
+        """
+        Check if age information is provided in the question.
+        If not, store detected conditions for later use.
+        """
+        adult_words = ["adult", "grown-up", "myself", "i am", "i'm", "man", "woman", "husband", "wife","i"]
+        child_words = ["child", "kid", "baby", "infant", "toddler", "son", "daughter", "boy", "girl"]
+
+        is_adult = any(word in question.lower() for word in adult_words)
+        is_child = any(word in question.lower() for word in child_words)
+
+        # Extract conditions from the question
+        conditions = self.extract_conditions(question)
+
+        # If we have conditions but no age info, store them and ask for age
+        if conditions and not (is_adult or is_child):
+            # Store the conditions in the conversation state
+            self.conversation_state[user_id] = {
+                'stored_conditions': conditions,
+                'waiting_for_age': True
+            }
+
+            # Format condition list for the template
+            condition_str = ", ".join(conditions)
+
+            # Select a template and format it with the conditions
+            age_clarification_template = random.choice(self.age_clarification_templates)
+            age_clarification = age_clarification_template.format(condition_str)
+
+            return {
+                'answer': age_clarification,
+                'score': 0.5,
+                'is_clarification': True,
+                'needs_age_info': True
+            }
+
+        return None
 
     def check_symptom_combinations(self, conditions):
         """Check if the conditions match any known symptom combinations"""
@@ -459,8 +472,87 @@ Children: 5-8 drops twice a day.
                 return combo, diagnosis
         return None, None
 
-    def get_answer(self, question, max_length=512):
+    def is_age_response(self, question):
+        """Check if the message appears to be a response to our age question"""
+        age_indicators = [
+            "adult", "child", "for me", "for my child", "myself", "my son", "my daughter",
+            "it's for", "it is for", "treating"
+        ]
+        return any(indicator in question.lower() for indicator in age_indicators)
+
+    def get_answer(self, question, user_id="default", max_length=512):
         try:
+            # Check if we're waiting for age info from this user
+            if user_id in self.conversation_state and self.conversation_state[user_id].get('waiting_for_age', False):
+                # This might be a response to our age clarification
+                if self.is_age_response(question):
+                    # Determine if the user specified a child
+                    is_child = any(word in question.lower() for word in
+                                   ["child", "kid", "baby", "infant", "toddler", "son", "daughter", "boy", "girl"])
+
+                    # Retrieve the stored conditions
+                    stored_conditions = self.conversation_state[user_id].get('stored_conditions', [])
+
+                    # Clear the waiting status
+                    self.conversation_state[user_id]['waiting_for_age'] = False
+
+                    # If we have stored conditions, use them instead of extracting new ones
+                    if stored_conditions:
+                        # Use our built-in medical context
+                        context = self.MEDICAL_CONTEXT
+
+                        # Check if these conditions match any known combinations
+                        symptom_combo, potential_diagnosis = self.check_symptom_combinations(stored_conditions)
+
+                        # Dictionary to store responses for each condition and the combined condition
+                        responses = {}
+                        max_score = 0.0
+
+                        # If we have a potential diagnosis based on symptom combination, query for that
+                        if potential_diagnosis:
+                            combined_result = self.safe_qa_pipeline(
+                                f"What is the remedy for {potential_diagnosis}?",
+                                context
+                            )
+
+                            if combined_result and combined_result.get('score', 0) >= 0.1:
+                                responses['combined_response'] = combined_result.get('answer', '')
+                                max_score = max(max_score, combined_result.get('score', 0))
+
+                        # Also generate individual responses for each symptom
+                        for condition in stored_conditions:
+                            result = self.safe_qa_pipeline(
+                                f"What is the remedy for {condition}?",
+                                context
+                            )
+
+                            if result and result.get('score', 0) >= 0.1:
+                                responses[condition] = f"For {condition}, {result.get('answer', '')}"
+                                max_score = max(max_score, result.get('score', 0))
+
+                        # Format a friendly response with the stored conditions
+                        friendly_answer = self.format_friendly_response(responses, stored_conditions,
+                                                                        potential_diagnosis, is_child)
+
+                        return {
+                            'answer': friendly_answer,
+                            'score': max_score if max_score > 0 else 0.5,
+                            'conditions_detected': stored_conditions,
+                            'potential_diagnosis': potential_diagnosis if potential_diagnosis else None,
+                            'is_child': is_child
+                        }
+
+            # If we don't have stored conditions or aren't waiting for age info, proceed normally
+
+            # Check if age info is needed and store conditions if it is
+            age_check = self.check_for_age_info(question, user_id)
+            if age_check:
+                return age_check
+
+            # Check if the question mentions a child
+            is_child = any(word in question.lower() for word in
+                           ["child", "kid", "baby", "infant", "toddler", "son", "daughter", "boy", "girl"])
+
             # Use our built-in medical context
             context = self.MEDICAL_CONTEXT
 
@@ -518,30 +610,32 @@ Children: 5-8 drops twice a day.
             if not responses and conditions:
                 # We have conditions but no good responses from the model
                 # Just use our built-in remedy information
-                friendly_answer = self.format_friendly_response({}, conditions, potential_diagnosis)
+                friendly_answer = self.format_friendly_response({}, conditions, potential_diagnosis, is_child)
                 return {
                     'answer': friendly_answer,
                     'score': 0.5,
                     'conditions_detected': conditions,
-                    'potential_diagnosis': potential_diagnosis if potential_diagnosis else None
+                    'potential_diagnosis': potential_diagnosis if potential_diagnosis else None,
+                    'is_child': is_child
                 }
 
             elif not responses:
                 # No conditions detected and no good responses
                 return {
-                    'answer': "I'd love to help, but I need a bit more information about what you're experiencing. Could you please share any specific symptoms or health concerns you have? For example, are you experiencing pain, fever, cough, or something else?",
+                    'answer': "I'd love to help, but I do not have the sufficient expertise to address this issue, I would suggest consulting one of our professionals",
                     'score': 0.0,
                     'is_clarification': True
                 }
 
             # Combine responses into a single friendly answer
-            friendly_answer = self.format_friendly_response(responses, conditions)
+            friendly_answer = self.format_friendly_response(responses, conditions, potential_diagnosis, is_child)
 
             return {
                 'answer': friendly_answer,
                 'score': max_score,
                 'conditions_detected': conditions,
-                'potential_diagnosis': potential_diagnosis if potential_diagnosis else None
+                'potential_diagnosis': potential_diagnosis if potential_diagnosis else None,
+                'is_child': is_child
             }
 
         except Exception as e:
@@ -554,6 +648,80 @@ Children: 5-8 drops twice a day.
                 'score': None
             }
 
+    def format_friendly_response(self, responses, conditions=None, potential_diagnosis=None, is_child=False):
+        """Make the response more friendly, empathetic and informative with age-appropriate dosages"""
+        # Start with a greeting
+        greeting = random.choice(self.greeting_templates)
+        formatted_answer = f"{greeting}\n\n"
+
+        # Add patient type information
+        patient_type = "child" if is_child else "adult"
+        formatted_answer += f"Based on the information for a {patient_type}, "
+
+        # Add empathy if conditions are detected
+        if conditions and len(conditions) > 0:
+            condition_list = ", ".join(conditions)
+            empathy = random.choice(self.empathy_templates).format(condition_list)
+            formatted_answer += f"{empathy}\n\n"
+
+        # Add info about potential diagnosis if available
+        if potential_diagnosis:
+            formatted_answer += f"Your symptoms of {', '.join(conditions)} may suggest {potential_diagnosis}.\n\n"
+
+        # Add transition phrase
+        formatted_answer += random.choice(self.transition_phrases)
+
+        # Add homeopathic remedy suggestions with appropriate dosage information
+        remedy_suggestions = []
+        for condition in conditions:
+            remedy_info = self.get_remedy_info(condition, is_child)
+            if remedy_info:
+                # Clean up any potential formatting issues
+                remedy_info = remedy_info.replace("Based on what you've shared,", "").strip()
+                remedy_suggestions.append(remedy_info)
+
+        if remedy_suggestions:
+            formatted_answer += "\n\n• " + "\n• ".join(remedy_suggestions)
+        elif responses:  # Only use responses if no remedy suggestions found
+            symptom_responses = []
+            for condition in conditions:
+                if condition in responses:
+                    # Clean up response text
+                    response_text = responses[condition]
+                    response_text = response_text.replace("Based on what you've shared,", "").strip()
+                    symptom_responses.append(response_text)
+
+            if symptom_responses:
+                formatted_answer += "\n\n• " + "\n• ".join(symptom_responses)
+
+        # Add concluding statement
+        formatted_answer += f"\n\n{random.choice(self.conclusion_templates)}"
+
+        return formatted_answer
+
+
+# Example usage:
+if __name__ == "__main__":
+    qa = DocumentQA()
+
+    # Example conversation flow:
+    # 1. User mentions symptoms without age info
+    user_id = "user123"  # In a real application, this would be a unique identifier for the user session
+
+    # First message with symptoms but no age info
+    result1 = qa.get_answer("I have a headache and fever. What can help?", user_id)
+    print("First Response (Age Clarification):", result1['answer'])
+
+    # Second message with age info
+    result2 = qa.get_answer("It's for me, I'm an adult", user_id)
+    print("\nSecond Response (Using stored symptoms):", result2['answer'])
+
+    # New conversation with a different user
+    user_id2 = "user456"
+
+    # First message with symptoms and age info for child
+    result3 = qa.get_answer("My son has a cough and fever. What remedies would help?", user_id2)
+    print("\nDirectly providing child info:", result3['answer'])
 
 # Example usage
 
@@ -1041,10 +1209,15 @@ def ask_question():
         return jsonify({'error': str(e)}), 500
 
 
+from flask import jsonify, flash, redirect, url_for, render_template, session
+from datetime import datetime
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-
-# Admin routes
 @app.route('/admin_dashboard')
 @login_required
 def admin_dashboard():
@@ -1083,10 +1256,12 @@ def admin_dashboard():
         return render_template('admin_dashboard.html', admin=admin_data)
 
     except Exception as e:
+        logger.error(f"Error loading dashboard: {str(e)}")
         flash(f'Error loading dashboard: {str(e)}')
         return redirect('/login')
 
-@app.route('/admin/approve_doctor/<email>')
+
+@app.route('/admin/approve_doctor/<email>', methods=['GET', 'POST'])
 @login_required
 def approve_doctor(email):
     if session['role'] != 'admin':
@@ -1111,25 +1286,31 @@ def approve_doctor(email):
             # Send approval email
             user = users_collection.find_one({'email': email})
             if user:
-                msg = Message(
-                    'Doctor Registration Approved',
-                    recipients=[email]
-                )
-                msg.html = render_template(
-                    'email/doctor_approval.html',
-                    name=user['name']
-                )
-                mail.send(msg)
+                try:
+                    msg = Message(
+                        'Doctor Registration Approved',
+                        recipients=[email]
+                    )
+                    msg.html = render_template(
+                        'email/doctor_approval.html',
+                        name=user['name']
+                    )
+                    mail.send(msg)
+                except Exception as e:
+                    logger.error(f"Error sending approval email: {str(e)}")
+
             flash('Doctor approved successfully!')
         else:
             flash('Doctor not found or already approved!')
 
     except Exception as e:
+        logger.error(f"Error approving doctor: {str(e)}")
         flash(f'Error approving doctor: {str(e)}')
 
     return redirect('/admin_dashboard')
 
-@app.route('/admin/reject_doctor/<email>')
+
+@app.route('/admin/reject_doctor/<email>', methods=['GET', 'POST'])
 @login_required
 def reject_doctor(email):
     if session['role'] != 'admin':
@@ -1154,25 +1335,31 @@ def reject_doctor(email):
             # Send rejection email
             user = users_collection.find_one({'email': email})
             if user:
-                msg = Message(
-                    'Doctor Registration Status',
-                    recipients=[email]
-                )
-                msg.html = render_template(
-                    'email/doctor_rejection.html',
-                    name=user['name']
-                )
-                mail.send(msg)
+                try:
+                    msg = Message(
+                        'Doctor Registration Status',
+                        recipients=[email]
+                    )
+                    msg.html = render_template(
+                        'email/doctor_rejection.html',
+                        name=user['name']
+                    )
+                    mail.send(msg)
+                except Exception as e:
+                    logger.error(f"Error sending rejection email: {str(e)}")
+
             flash('Doctor rejected successfully!')
         else:
             flash('Doctor not found or already rejected!')
 
     except Exception as e:
+        logger.error(f"Error rejecting doctor: {str(e)}")
         flash(f'Error rejecting doctor: {str(e)}')
 
     return redirect('/admin_dashboard')
 
-@app.route('/admin/delete_user/<email>')
+
+@app.route('/admin/delete_user/<email>', methods=['GET', 'POST'])
 @login_required
 def delete_user(email):
     if session['role'] != 'admin':
@@ -1183,6 +1370,7 @@ def delete_user(email):
             flash('Cannot delete admin account!')
             return redirect('/admin_dashboard')
 
+        # Delete associated data
         chat_collection.delete_many({
             '$or': [
                 {'user_email': email},
@@ -1199,10 +1387,25 @@ def delete_user(email):
             flash('User not found!')
 
     except Exception as e:
+        logger.error(f"Error deleting user: {str(e)}")
         flash(f'Error deleting user: {str(e)}')
 
     return redirect('/admin_dashboard')
 
+
+# The chatbot routes can remain the same as they look correct
+
+# Add error handlers
+@app.errorhandler(404)
+def not_found_error(error):
+    flash('Resource not found!', 'error')
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    flash('An internal error occurred!', 'error')
+    return redirect(url_for('admin_dashboard'))
 
 # Flask route for viewing chatbot conversations
 @app.route('/admin/chatbot_chats')

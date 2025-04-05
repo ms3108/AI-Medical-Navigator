@@ -189,3 +189,49 @@
 }
 </style>
 {% endblock %}
+{% block extra_js %}
+<script>
+// Initialize Bootstrap components
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize toasts
+    var toastElList = [].slice.call(document.querySelectorAll('.toast'))
+    var toastList = toastElList.map(function(toastEl) {
+        return new bootstrap.Toast(toastEl)
+    });
+    toastList.forEach(toast => toast.show());
+});
+
+// Get modal element
+const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+let actionUrl = '';
+
+function approveDoctor(email) {
+    document.getElementById('modalTitle').textContent = 'Confirm Approval';
+    document.getElementById('modalBody').textContent = 'Are you sure you want to approve this doctor?';
+    actionUrl = `/admin/approve_doctor/${email}`;
+    confirmationModal.show();
+}
+
+function rejectDoctor(email) {
+    document.getElementById('modalTitle').textContent = 'Confirm Rejection';
+    document.getElementById('modalBody').textContent = 'Are you sure you want to reject this doctor?';
+    actionUrl = `/admin/reject_doctor/${email}`;
+    confirmationModal.show();
+}
+
+function deleteUser(email) {
+    document.getElementById('modalTitle').textContent = 'Confirm Deletion';
+    document.getElementById('modalBody').textContent = 'Are you sure you want to delete this user? This action cannot be undone.';
+    actionUrl = `/admin/delete_user/${email}`;
+    confirmationModal.show();
+}
+
+// Handle confirmation button click
+document.getElementById('confirmButton').addEventListener('click', function() {
+    if (actionUrl) {
+        window.location.href = actionUrl;
+    }
+    confirmationModal.hide();
+});
+</script>
+{% endblock %}
