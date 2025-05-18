@@ -32,7 +32,7 @@
 | Real-Time Chat   | Socket.IO          |
 | AI Chatbot       | RoBERTa (transformers) |
 | Authentication   | Flask-Login        |
-| Deployment       | (Heroku / Render / Your Hosting) |
+| Deployment       | (Render ) |
 
 ## 📂 Project Structure
 
